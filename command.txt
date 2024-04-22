@@ -1,0 +1,23 @@
+gas price minimising staorage variables
+forge inspect FundMe storageLayout  storage layout of contract
+gives details of all variable storage
+
+
+run on local network
+ anvil
+ forge script script/DeployFundMe.s.sol --rpc-url http://127.0.0.1:8545 --private-key  0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
+take contract address
+cast storage 0x98eDDadCfde04dC22a0e62119617e74a6Bc77313 4 will give the variable a index 4
+
+att low level instructions are evm opcodes which as gas prices.
+
+cast send address "fund()" value
+
+else in scripts 
+Interaction.s.sol
+
+ffi=true   permits to run commands directly on prompt
+
+makefile can be used to make commands short cuts
+
+make deploy deploy

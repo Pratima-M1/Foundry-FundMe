@@ -1,0 +1,168 @@
+## **Deployment and Contract Details**
+
+1. **Deploying the Factory Contract**:
+    - To create a new liquidity pool, a user interacts with the **Factory** contract.
+    - The Factory contract generates a new pool by deploying a **Pool** contract for the specified asset pair and fee.
+    - The Factory contract maintains a list of all deployed pools.
+    - Developers can deploy the Factory contract on the Ethereum network using tools like Truffle, Hardhat, or Remix.
+2. **Deploying a New Pool**:
+    - When a user wants to create a new pool, they provide the following parameters:
+        - **Token Addresses**: Addresses of the two tokens forming the asset pair.
+        - **Fee Tier**: The fee tier (0.05%, 0.3%, or 1%).
+    - The Factory contract deploys a new Pool contract with the specified parameters.
+    - The Pool contract initializes with the provided token addresses and fee tier.
+3. **Pool Initialization**:
+    - The newly deployed Pool contract initializes its state variables:
+        - **Token Addresses**: Set to the provided token addresses.
+        - **Fee Tier**: Set to the specified fee tier.
+        - **Liquidity Range**: Determines the price range within which liquidity can be provided.
+        - **Oracle**: Initializes the price oracle for the asset pair.
+4. **Liquidity Provision**:
+    - Users can provide liquidity to the pool by depositing equal values of both tokens.
+    - Liquidity providers receive **liquidity tokens** representing their share in the pool.
+    - The Pool contract calculates the initial price based on the deposited amounts.
+5. **SwapRouter Deployment**:
+    - The **SwapRouter** contract facilitates token swaps.
+    - Developers deploy the SwapRouter contract separately.
+    - The SwapRouter interacts with the Factory and Pool contracts to execute swaps.
+6. **Nonfungible Position Manager (NPM)**:
+    - The NPM contract manages liquidity positions within pools.
+    - Developers deploy the NPM contract separately.
+    - Users can create, adjust, or exit positions using NFTs representing specific price ranges.
+
+## **Deploying SmartSwap:**
+
+### Deploying contracts(01_deployConttracts.js)
+
+1. **Deploy Wrapped Ether (WETH9) Contract**:
+    - Deploy the WETH9 contract, which wraps Ether (ETH) as an ERC-20 token.
+    - The address of the deployed WETH9 contract will be used in subsequent steps.
+2. **Deploy SmartSwap Factory Contract**:
+    - Deploy the SmartSwap Factory contract responsible for creating instances of SmartSwap pools.
+    - The Factory contract keeps track of ownership and controls pool protocol fees.
+    - It maintains a mapping f fee amounts to tick spacings, determining the granularity of price ranges.
+3. **Deploy NFTDescriptor Contract**:
+    - The NFTDescriptor contract is a library contract that provides descriptive information for nonfungible tokens (NFTs).
+    - It generates a string containing data URI for JSON metadata related to NFTs.
+    - This metadata includes details about the NFT, such as its properties, attributes, and visual representation.
+    - The NFTDescriptor contract is used by other contracts to create human-readable descriptions of NFTs.
+4. **Deploy SwapRouter contract**
+    - Deploy the SwapRouter contract, which handles stateless execution of swaps against SmartSwap.
+    - The SwapRouter verifies amounts, slippage, and executes swaps.
+    - It also handles swap callbacks, ensuring authenticity and token transfers.
+5. **Deploy NonfungibleTokenPositionDescriptor Contract**:
+    - The NonfungiblePositionDescriptor contract specifically uses the NFTDescriptor contract.
+    - When deploying the NonfungiblePositionDescriptor, it references the address of the deployed NFTDescriptor contract.
+    - This linkage allows the NonfungiblePositionDescriptor to provide detailed descriptions for SmartSwap liquidity positions represented as NFTs.
+6. **Deploy NonfungiblePositionManager Contract**:
+    - Deploy the NonfungiblePositionManager contract.
+    - This contract wraps SmartSwap positions in the ERC721 non-fungible token interface.
+    - It manages liquidity positions within pools using NFTs representing specific price ranges.
+    
+    ### Deploy Test ERC20 Tokens(02_deployTokens.js)
+    
+    1. **Deploy Tether (USDT) Contract**:
+        - Use the Tether contract factory to deploy the Tether contract.
+        - The Tether contract represents a stablecoin pegged to the value of 1 USD.
+        - Log the deployed contract address as TETHER_ADDRESS.
+    2. **Deploy GoldBarCoin Contract**:
+        - Use the GoldBarCoin contract factory to deploy the GoldBarCoin contract.
+        - The GoldBarCoin contract represents a custom token (you can replace this with your specific use case).
+        - Log the deployed contract address as GOLD_BAR_COIN_ADDRESS.
+    3. **Mint Tokens**:
+        - Connect the owner account to the Tether contract and mint tokens for another address (e.g., signer2.address).
+        - Repeat the same process for GoldBarCoin.
+    4. **Recording Addresses**:
+        - Collect the contract addresses into an array:
+            - TETHER_ADDRESS: Address of the deployed Tether contract.
+            - GOLD_BAR_COIN_ADDRESS: Address of the deployed GoldBarCoin contract.
+    
+    ### Create Pool(03_deployPool.js)
+    
+    - The deployPool function deploys a new liquidity pool:
+        - Connects to the NonfungiblePositionManager contract.
+        - Calls createAndInitializePoolIfNecessary with the following parameters:
+            - **token0:** Tether (USDT) address
+            - **token1:** GoldBarCoin address
+            - **fee:** 500 (fee tier)
+            - **price:** Encoded square root price (e.g., encodePriceSqrt(1, 1)).
+        - Once the pool is created we can add liquidity.
+        
+        For setting the initial price of the pool it can be done in two ways.
+        
+        1. **Offline Calculation**:
+            - Calculate the desired sqrtPriceX96 value offline using a formula or external tool.
+            - Pass this calculated value as a constant in your Solidity code during contract deployment.
+    
+    ### Adding liquidity to the pool(04_addLiquidity.js)
+    
+    - The **mint** function adds liquidity to the pool:
+        - Connects to the NonfungiblePositionManager contract.
+        - Calls mint with the following parameters:
+            - **token0:** Tether (USDT) address
+            - **token1:** GoldBarCoin address
+            - **fee:** 500 (fee tier)
+            - **price:** Encoded square root price (e.g., encodePriceSqrt(1, 1)).
+        - Once the pool is creatd we can add liquidity.
+        
+        ### IncreaseLiquidit(05_increaseLiquidity.js)
+        
+        - The **increaseLiquidity** function increase the liquidity of the exisiting position.
+        - call increaseLiquidity function with following parameters
+        - **tokenId:** token Id of the position
+        - **amount0Desired and amount1Desired:** ampunt of token0 and token1 to increaseLiquidity.
+        - *amount0Min and amount1Min:**These parameters define the minimum acceptable amounts of token0 and token1 that you are willing to add.If the actual amounts added during the transaction fall below these minimum values, the transaction will fail.
+        - **deadline:** The transaction is executed within a specific time frame else it will get reverted.
+        
+        ### decreaseLiquidity(06_decreaseLiquidity.js)
+        
+        - The decreaseLiquidity function decrease the liquidity of the exisiting position.
+        - call decreaseLiquidity function with following parameters
+        - *tokenId:**token Id of the position
+        - **liquidity:** liquidity amount to decrease Liquidity.
+        - *amount0Min and amount1Min:**These parameters define the minimum acceptable amounts of token0 and token1 that you are willing to decrease the liquidity from position.If the actual amounts decreased during the transaction fall below these minimum values, the transaction will fail.
+        - **deadline:** The transaction is executed within a specific time frame else it will get reverted.
+        
+        ### Swap tokens for exact Input tokens(07_swap_ExactInput.js)
+        
+        - It allows you to perform a single-path swap with exact input, meaning you specify the exact amount of one token (tokenIn) you want to trade, and the function calculates the maximum amount of another token (tokenOut) you will receive.
+        - call swapExactInput function with following parameters:
+        - *tokenIn:**The address of the token you want to trade (input token).
+        - *tokenOut:**The address of the token you want to receive (output token).
+        - *fee:**The fee tier of the pool (0.05% or 0.3%).
+        - *recepient:**The address that will receive the output tokens.
+        - *deadline:**The Unix timestamp (in seconds) until which the transaction is valid.
+        - *amountIn:**The exact amount of tokenIn you want to trade (specified in the smallest unit, e.g., Wei for Ether).
+        - *amountOutMinimum:**The minimum acceptable amount of **`tokenOut`** you expect to receive.
+        - *sqrtPriceLimitX96:**The square root of the price limit (optional).
+        
+        ### swap token for exact output tokens(08_swap_ExactOutput.js)
+        
+        - It allows you to perform a single-path swap with exact output, meaning you specify the exact amount of one token (tokenout) you want to recieve, and the function calculates the maximum amount of another token (tokenIn) you will trade wit.
+        - call **swapExactOutput** function with following parameters:
+        - *tokenIn:**The address of the token you want to trade (input token).
+        - *tokenOut:**The address of the token you want to receive (output token).
+        - *fee:**The fee tier of the pool (1%,0.05% or 0.3%).
+        - *recepient:**The address that will receive the output tokens.
+        - *deadline:**The Unix timestamp (in seconds) until which the transaction is valid.
+        - *amountOut:**The exact amount of tokenIn you want to receive (specified in the smallest unit, e.g., Wei for Ether).
+        - *amountInMaximum:**The maximum acceptable amount of tokenIn you will trade with.
+        
+        ### collect fees of a position(09_collect.js)
+        
+        - It allows the LP(liquidity provider) to collect fees earned frm the position created.
+        - call collect function with the following parameters
+        - **tokenId:** Token ID of the liquidity position you want to collect funds from.
+        - **recipient:** The address that will receive the fees.
+        - *amount0Max and amount1Max:**These parameters define the maximum amounts of token0 and token1 that you want to collect from the specified position.
+        
+        ### burn the position (remove liquidity)(10_burn_position.js)
+        
+        - It allows the LP to remove the liquidity of a position and to burn the position.
+        - call **burn** function with tokenId of the position as the parameter.
+        
+        Note: Before burning the position all fees must be collected and the liquidity is to be decreased or removed completely.
+        
+        ### Retrieving the details of a position(11_getPositions.js)
+        
+        - The **positions(tokenId)** function is part of the **NonfungiblePositionManager** contract in SmartSwap.
